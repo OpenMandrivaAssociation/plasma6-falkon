@@ -1,0 +1,31 @@
+diff -up falkon-3.2.0/src/main/main.cpp.3~ falkon-3.2.0/src/main/main.cpp
+--- falkon-3.2.0/src/main/main.cpp.3~	2022-02-02 04:58:26.649865176 +0100
++++ falkon-3.2.0/src/main/main.cpp	2022-02-02 04:58:44.302956710 +0100
+@@ -20,6 +20,9 @@
+ 
+ #include <iostream>
+ 
++#include <unistd.h>
++#include <sys/types.h>
++
+ #ifndef Q_OS_WIN
+ void msgHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+ {
+@@ -61,6 +64,17 @@ int main(int argc, char* argv[])
+     }
+     delete socket;
+ 
++    if(getuid() == 0 || geteuid() == 0) {
++	    // QtWebEngine with sandboxing can't run as root
++	    // https://bugs.chromium.org/p/chromium/issues/detail?id=638180
++	    // So we need to either switch to another user, or
++	    // disable sandboxing.
++	    // Since a user might be trying to download stuff to
++	    // a root-owned directory when recovering a system etc.,
++	    // let's go for the latter...
++	    qputenv("QTWEBENGINE_DISABLE_SANDBOX", QByteArray::number(1));
++    }
++
+     // Hack to fix QT_STYLE_OVERRIDE with QProxyStyle
+     const QByteArray style = qgetenv("QT_STYLE_OVERRIDE");
+     if (!style.isEmpty()) {
